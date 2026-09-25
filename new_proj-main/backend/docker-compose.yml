@@ -1,0 +1,106 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: educenter-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: educenter
+      POSTGRES_USER: educenter
+      POSTGRES_PASSWORD: educenter_dev_only
+    ports:
+      - "5433:5432"
+    volumes:
+      - educenter-postgres-pgvector-data:/var/lib/postgresql/data
+
+  # Local models for development (docs/06_phase4_technical_plan.md §1): OpenAI-compatible API on :11434/v1 —
+  # http://educenter-ollama:11434/v1 from the API container, http://localhost:11434/v1 from the host.
+  # The GPU comes from Docker Desktop's NVIDIA runtime; remove the `deploy` block to fall back to CPU.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: educenter-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - educenter-ollama-models:/root/.ollama
+    environment:
+      # Keep a model resident between requests, but never both large models at once on a 12 GB card.
+      OLLAMA_KEEP_ALIVE: "10m"
+      OLLAMA_MAX_LOADED_MODELS: "2"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Speech to text for the Speaking module (docs/00_TZ.md §34): Whisper behind a small HTTP API, on the same GPU.
+  # `small` with faster-whisper keeps VRAM around 1.5 GB, which fits next to the Ollama models on a 12 GB card.
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:v1.4.1-gpu
+    container_name: educenter-whisper
+    restart: unless-stopped
+    ports:
+      # 9000 on the host belongs to Docker Desktop itself, so the API talks to educenter-whisper:9000 over the compose
+      # network and only debugging goes through 19000.
+      - "19000:9000"
+    environment:
+      ASR_MODEL: small
+      ASR_ENGINE: faster_whisper
+      ASR_DEVICE: cuda
+    volumes:
+      - educenter-whisper-cache:/root/.cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Text to speech for the Speaking module (docs/00_TZ.md §34): the examiner's question read aloud. openedai-speech answers the OpenAI
+  # POST /v1/audio/speech call with local Piper voices (the -min image is Piper only — CPU, no GPU, no XTTS model), so a paid provider
+  # later is a change of BaseUrl and key in appsettings.Local.json, not of code. The voices (~60 MB each) download on the first start.
+  # Off until it is named in the SpeechSynthesis route — see the "tts" entry in appsettings.Local.example.json.
+  tts:
+    image: ghcr.io/matatonic/openedai-speech-min:latest
+    container_name: educenter-tts
+    restart: unless-stopped
+    ports:
+      # 9000 on the host belongs to another project's MinIO, so only debugging goes through 18000 (loopback only); the API uses educenter-tts:8000.
+      - "127.0.0.1:18000:8000"
+    environment:
+      TTS_HOME: voices
+      HF_HOME: voices
+    volumes:
+      - educenter-tts-voices:/app/voices
+      - educenter-tts-config:/app/config
+
+  # Virus scan of every uploaded file (docs/00_TZ.md §38 step 2): clamd answers the API on 3310 (INSTREAM), and freshclam keeps its signature
+  # database current. The database downloads on the first start — the healthcheck stays "starting" for a minute or two and needs ~1.5 GB of
+  # memory once loaded. The API uses it only when Files:Scanner names it (see appsettings.Local.example.json); otherwise a developer machine
+  # stores uploads unscanned, as it always did, and any other host refuses them.
+  clamav:
+    image: clamav/clamav:stable
+    container_name: educenter-clamav
+    restart: unless-stopped
+    ports:
+      # Only for debugging from this machine (`clamdscan --stream`), loopback only; the API reaches educenter-clamav:3310 over the compose network.
+      - "127.0.0.1:13310:3310"
+    volumes:
+      - educenter-clamav-db:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+
+volumes:
+  educenter-postgres-pgvector-data:
+  educenter-ollama-models:
+  educenter-whisper-cache:
+  educenter-tts-voices:
+  educenter-tts-config:
+  educenter-clamav-db:

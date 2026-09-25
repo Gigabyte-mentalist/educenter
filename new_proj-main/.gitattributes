@@ -1,0 +1,6 @@
+# Shell scripts must keep LF endings: with CRLF, bash (and Linux containers) fail with "$'\r': command not found".
+*.sh text eol=lf
+graphify-out/graph.json merge=graphify
+# Mounted read-only into Linux containers as-is.
+deploy/Caddyfile text eol=lf
+deploy/*.Dockerfile text eol=lf

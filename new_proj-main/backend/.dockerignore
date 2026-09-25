@@ -1,0 +1,21 @@
+# Build context for deploy/api.Dockerfile. Anything listed here can never end up inside an image layer.
+
+# Machine-local settings and API keys (DeepSeek) — the single most important line in this file.
+**/appsettings.Local.json
+**/appsettings.*.local.json
+
+# Uploaded files and local run state
+**/App_Data
+**/local-logs
+
+# Build output — the image builds its own
+**/bin
+**/obj
+**/.vs
+**/*.user
+
+# Not needed to build
+scripts
+tests
+docker-compose.yml
+**/*.md

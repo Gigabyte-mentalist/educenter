@@ -1,0 +1,124 @@
+# Gateway: the only container that accepts traffic from outside the docker network, and only from this machine's
+# loopback (docker-compose.yml publishes 127.0.0.1:8088). Tailscale Funnel terminates TLS on the public name and forwards
+# plain HTTP here; from here it is one origin for everything, so the browser never makes a cross-origin request.
+#
+#   /api/*  /hubs/*   ->  api:8080   (ASP.NET Core)
+#   everything else   ->  web:3000   (Next.js)
+#
+# Nothing else is routed: the API's /healthz, the Development-only OpenAPI document and Hangfire dashboard are not
+# reachable from here even if they existed.
+{
+	admin off
+	auto_https off
+	persist_config off
+
+	servers {
+		# Funnel connects from the docker bridge (a private address). Only then is the client address it reports in
+		# X-Forwarded-For believed; a client's own X-Forwarded-For is never used to pick its address.
+		trusted_proxies static private_ranges
+		client_ip_headers X-Forwarded-For
+
+		timeouts {
+			read_header 10s
+			read_body 5m
+			idle 5m
+		}
+	}
+}
+
+(upstream) {
+	# The API rate-limits per client address, so it must see the visitor's, not the gateway's. `client_ip` is the
+	# right-most address that is not itself a trusted proxy.
+	header_up X-Forwarded-For {client_ip}
+	header_up X-Forwarded-Proto https
+	# Tailscale tells the proxy who the tailnet user is (email, name, photo). The application has no use for it and must
+	# never come to depend on it — it is not sent to any upstream.
+	header_up -Tailscale-User-Login
+	header_up -Tailscale-User-Name
+	header_up -Tailscale-User-Profile-Pic
+	header_up -Tailscale-Headers-Info
+}
+
+:8080 {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				# The SignalR client sends the access token in the query string (browsers cannot set a header on a
+				# WebSocket) — a live 15-minute credential that must never reach a log file.
+				request>uri query {
+					replace access_token REDACTED
+				}
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+				# Personal data Tailscale adds for tailnet visitors: no reason for it to sit in a log file.
+				request>headers>Tailscale-User-Login delete
+				request>headers>Tailscale-User-Name delete
+				request>headers>Tailscale-User-Profile-Pic delete
+				resp_headers>Set-Cookie delete
+			}
+		}
+	}
+
+	# Health of this proxy itself (docker healthcheck). Answered here, before any upstream or host check.
+	handle /gateway-health {
+		respond "ok" 200
+	}
+
+	# Only the public name (plus loopback, for the healthcheck) is served.
+	@wronghost not host {$PUBLIC_HOST} localhost 127.0.0.1
+	handle @wronghost {
+		respond "Misdirected request" 421
+	}
+
+	@oddmethod not method GET HEAD POST PUT PATCH DELETE OPTIONS
+	handle @oddmethod {
+		respond "Method not allowed" 405
+	}
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Microphone is for the Speaking practice page; nothing else on the device is ever needed.
+		Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), bluetooth=(), serial=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		-Server
+		-X-Powered-By
+		# Applied after the upstream has answered, so these values win over anything the API or Next.js set.
+		defer
+	}
+
+	# Sign-in: a few dozen bytes of JSON. Anything bigger is not a person typing.
+	handle /api/auth/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy api:8080 {
+			import upstream
+		}
+	}
+
+	# The rest of the API and the SignalR hub. 70 MB clears the largest legitimate upload (64 MB knowledge-base file).
+	@backend path /api/* /hubs/*
+	handle @backend {
+		request_body {
+			max_size 70MB
+		}
+		reverse_proxy api:8080 {
+			flush_interval -1
+			import upstream
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			import upstream
+		}
+	}
+}

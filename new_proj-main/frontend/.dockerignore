@@ -1,0 +1,19 @@
+# Build context for deploy/web.Dockerfile.
+
+# Dependencies and build output — the image installs and builds its own
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+
+# Local env files can carry secrets; the only build-time setting (NEXT_PUBLIC_API_URL) is passed as a build arg.
+.env*
+*.pem
+
+# Not needed to build
+.git
+.vscode
+*.md
+npm-debug.log*

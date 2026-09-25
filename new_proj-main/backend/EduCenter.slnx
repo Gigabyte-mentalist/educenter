@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EduCenter.Api/EduCenter.Api.csproj" />
+    <Project Path="src/EduCenter.Infrastructure/EduCenter.Infrastructure.csproj" />
+    <Project Path="src/EduCenter.Modules.Academic/EduCenter.Modules.Academic.csproj" />
+    <Project Path="src/EduCenter.Modules.Ai/EduCenter.Modules.Ai.csproj" />
+    <Project Path="src/EduCenter.Modules.Audit/EduCenter.Modules.Audit.csproj" />
+    <Project Path="src/EduCenter.Modules.Automation/EduCenter.Modules.Automation.csproj" />
+    <Project Path="src/EduCenter.Modules.Chat/EduCenter.Modules.Chat.csproj" />
+    <Project Path="src/EduCenter.Modules.Crm/EduCenter.Modules.Crm.csproj" />
+    <Project Path="src/EduCenter.Modules.Finance/EduCenter.Modules.Finance.csproj" />
+    <Project Path="src/EduCenter.Modules.Identity/EduCenter.Modules.Identity.csproj" />
+    <Project Path="src/EduCenter.Modules.Lms/EduCenter.Modules.Lms.csproj" />
+    <Project Path="src/EduCenter.Modules.Notifications/EduCenter.Modules.Notifications.csproj" />
+    <Project Path="src/EduCenter.Modules.Organizations/EduCenter.Modules.Organizations.csproj" />
+    <Project Path="src/EduCenter.Modules.Students/EduCenter.Modules.Students.csproj" />
+    <Project Path="src/EduCenter.Modules.Timeline/EduCenter.Modules.Timeline.csproj" />
+    <Project Path="src/EduCenter.SharedKernel/EduCenter.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EduCenter.Api.IntegrationTests/EduCenter.Api.IntegrationTests.csproj" />
+    <Project Path="tests/EduCenter.Modules.Academic.Tests/EduCenter.Modules.Academic.Tests.csproj" />
+    <Project Path="tests/EduCenter.Modules.Identity.Tests/EduCenter.Modules.Identity.Tests.csproj" />
+  </Folder>
+</Solution>

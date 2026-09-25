@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\EduCenter.SharedKernel\EduCenter.SharedKernel.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Identity\EduCenter.Modules.Identity.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Organizations\EduCenter.Modules.Organizations.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Academic\EduCenter.Modules.Academic.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Audit\EduCenter.Modules.Audit.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Crm\EduCenter.Modules.Crm.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Students\EduCenter.Modules.Students.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Lms\EduCenter.Modules.Lms.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Timeline\EduCenter.Modules.Timeline.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Finance\EduCenter.Modules.Finance.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Notifications\EduCenter.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Automation\EduCenter.Modules.Automation.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Chat\EduCenter.Modules.Chat.csproj" />
+    <ProjectReference Include="..\EduCenter.Modules.Ai\EduCenter.Modules.Ai.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.3.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
